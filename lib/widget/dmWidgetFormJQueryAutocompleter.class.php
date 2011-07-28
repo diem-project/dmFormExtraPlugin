@@ -1,5 +1,5 @@
 <?php
-class dmWidgetFormJQueryAutocompleter extends sfWidgetFormJQueryAutocompleter
+class dmWidgetFormJQueryAutocompleter extends sfWidgetForm
 {
 	/**
 	 * Configures the current widget.
@@ -11,6 +11,15 @@ class dmWidgetFormJQueryAutocompleter extends sfWidgetFormJQueryAutocompleter
 	 */
 	protected function configure($options = array(), $attributes = array())
 	{
+    
+    $this->addRequiredOption('url');
+    $this->addOption('value_callback');
+    $this->addOption('widget_type', 'input');
+    $this->addOption('config', '{ }');
+
+    // this is required as it can be used as a renderer class for sfWidgetFormChoice
+    $this->addOption('choices');
+    
 		$this->addOption('dispatcher');
 		$this->addOption('response');
 		$this->addOption('request');
@@ -18,11 +27,19 @@ class dmWidgetFormJQueryAutocompleter extends sfWidgetFormJQueryAutocompleter
 		parent::configure($options, $attributes);
 		
 		$this->addOption('config', array('do_not_autocomplete' => true));
+    
 	}
 
 
 	public function render($name, $value = null, $attributes = array(), $errors = array())
 	{
+    // set multiple = true when textarea widget_type set
+    if ($this->getOption('widget_type') == 'textarea') {
+      if (!(array_key_exists('multiple', $this->getOption('config', array())))) {
+        $this->setOption('config', array_merge($this->getOption('config', array()), array('multiple' => true)));
+      }
+    }
+    
 		$visibleValue = $this->getOption('value_callback') ? call_user_func($this->getOption('value_callback'), $value) : $value;
 
 		if(!dm::isCli())
@@ -50,14 +67,16 @@ class dmWidgetFormJQueryAutocompleter extends sfWidgetFormJQueryAutocompleter
 			$config =  '<script type="text/javascript"> dm_configuration = $.extend(dm_configuration, ' . json_encode($this->getJavascriptConfig()) . ');</script>';
 		}
 
-		return
-		$this->renderTag('input', array('type' => 'hidden', 'name' => $name, 'value' => $value))
-		.
-		$this->renderTag('input', array_merge(array('type' => $this->getOption('type'), 'name' => 'autocomplete_' . $name, 'value' => $visibleValue), $attributes))
-		.
-		($ajax ? $config : '')
+		$html = $this->renderTag('input', array('type' => 'hidden', 'name' => $name, 'value' => $value));
+    
+    if ($this->getOption('widget_type') == 'textarea') {
+		  $html .= $this->renderContentTag('textarea', $visibleValue, array_merge(array('type' => $this->getOption('type'), 'name' => 'autocomplete_' . $name, /*'value' => $visibleValue*/), $attributes));
+    } else {
+      $html .= $this->renderTag('input', array_merge(array('type' => $this->getOption('type'), 'name' => 'autocomplete_' . $name, 'value' => $visibleValue), $attributes));
+    }
+		$html .= ($ajax ? $config : '');
 
-		;
+    return $html;
 
 	}
 
