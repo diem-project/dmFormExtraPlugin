@@ -30,7 +30,11 @@
 		    	if(v.config.result && $.isFunction(v.config.result)){
 		    		v.config.result(event, data);
 		    	}else{
-		    		form_input.val(data[1]);
+            if (v.config.multiple) {
+		    		  form_input.val(form_input.val() + (form_input.val() ? ',' : '') + data[1]);
+            } else {
+		    		  form_input.val(data[1]);
+            }
 		    	}
 		    });
 	});
